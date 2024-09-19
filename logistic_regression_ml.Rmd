@@ -79,6 +79,9 @@ table(data$diabetes_t2)
 
 biostats_logistic <- glm(diabetes_t2 ~ PM_BMI_SR + SDC_AGE_CALC + pa_cat + latinx + indigenous + eb_black + fatty_liver + SDC_MARITAL_STATUS + SDC_EDU_LEVEL + SDC_INCOME + HS_GEN_HEALTH + NUT_VEG_QTY + NUT_FRUITS_QTY + ALC_CUR_FREQ + SDC_BIRTH_COUNTRY + PA_SIT_AVG_TIME_DAY + SMK_CIG_STATUS + SLE_TIME + DIS_DIAB_FAM_EVER, data = data, family = "binomial")
 summary(biostats_logistic)
+
+multi_table <- tbl_regression(biostats_logistic, exponentiate = TRUE) 
+multi_table %>% as_kable()
 ```
 
 We would then use the ORs, CIs, and p-values to get information about the strength, direction, and probability that the association is due to chance or not (Not getting the p-value debate here). 
@@ -436,6 +439,14 @@ Here we can see that based on tuning the model accuracy ranges from 0.904 to 0.9
 
 # References
 
+https://medium.com/the-researchers-guide/modelling-binary-logistic-regression-using-tidymodels-library-in-r-part-1-c1bdce0ac055
+
+https://bcheggeseth.github.io/253_spring_2024/tidymodels-cheatsheet.html#logistic-regression
+
+https://www.tidymodels.org/start/
+
+https://www.tmwr.org/models
+
 https://themis.tidymodels.org/reference/step_upsample.html
 
 https://parsnip.tidymodels.org/reference/logistic_reg.html
@@ -444,3 +455,4 @@ https://www.stepbystepdatascience.com/tuning-hyperparameters-tidymodels
 
 https://www.stepbystepdatascience.com/ml-with-tidymodels
 
+http://sthda.com/english/articles/36-classification-methods-essentials/149-penalized-logistic-regression-essentials-in-r-ridge-lasso-and-elastic-net/

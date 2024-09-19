@@ -1,0 +1,193 @@
+---
+title: "Data Wrangling"
+author: "Daniel Fuller"
+date: "2024-09-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(mice)
+```
+
+Let's simplify the dataset so we are not working with so many variables. 
+
+```{r}
+data <- read_csv("data.csv")
+
+data <- select(data, "DIS_DIAB_TYPE", "PM_BMI_SR", "SDC_AGE_CALC", "PA_LEVEL_SHORT", "SDC_EB_ABORIGINAL", "SDC_EB_LATIN", "SDC_EB_BLACK", "DIS_LIVER_FATTY_EVER", "SDC_MARITAL_STATUS", "SDC_EDU_LEVEL", "SDC_INCOME", "HS_GEN_HEALTH", "NUT_VEG_QTY", "NUT_FRUITS_QTY", "ALC_CUR_FREQ", "SDC_BIRTH_COUNTRY", "PA_SIT_AVG_TIME_DAY", "SMK_CIG_STATUS", "SLE_TIME", "DIS_DIAB_FAM_EVER", "HS_ROUTINE_VISIT_EVER", "WH_HRT_EVER", "DIS_STROKE_EVER", "DIS_COPD_EVER", "DIS_LC_EVER", "DIS_IBS_EVER", "DIS_DIAB_FAM_EVER", "WRK_FULL_TIME", "WRK_STUDENT", "PM_WEIGHT_SR_AVG")
+```
+
+#### Outcome variable
+
+Let's look at the outcome variable, recode, and drop observations that are not relevant. We know that the GLM function needs a 0/1 variable and we want to recode that way now so we don't need to change it after. We also know we want to keep our gestational diabetes variable because we need it later. 
+
+```{r}
+table(data$DIS_DIAB_TYPE)
+
+data <- data %>%
+	mutate(diabetes_t2 = case_when(
+    DIS_DIAB_TYPE == 2 ~ 1,
+    DIS_DIAB_TYPE == -7 ~ 0, 
+		TRUE ~ NA_real_
+	))
+
+data$diabetes_t2 <- as.factor(data$diabetes_t2)
+
+table(data$diabetes_t2, data$DIS_DIAB_TYPE)
+
+data <- data %>%
+	mutate(diabetes_gestat = case_when(
+    DIS_DIAB_TYPE == 3 ~ 1,
+    DIS_DIAB_TYPE == -7 ~ 0, 
+		TRUE ~ NA_real_
+	))
+
+data$diabetes_gestat <- as.factor(data$diabetes_gestat)
+
+data <- filter(data, diabetes_t2 == 0 | diabetes_t2 == 1 | diabetes_gestat == 1)
+
+table(data$diabetes_t2, data$DIS_DIAB_TYPE)
+
+data <- data %>%
+	mutate(diabetes = case_when(
+    diabetes_t2 == 0 ~ "neg",
+    diabetes_t2 == 1 ~ "pos"
+	))
+
+table(data$diabetes_t2, data$diabetes)
+```
+
+For logistic regression in the case of a cross-section study we want the outcome to be ~10% of the total sample. Here we have `2160/36807*100 = 5.86%`. 
+
+#### Preparing predictor variables
+
+**BMI overweight**
+
+```{r}
+glimpse(data$PM_BMI_SR)
+
+summary(data$PM_BMI_SR) ### Lots of NAs! 
+
+data <- data %>%
+	mutate(bmi_overweight = case_when(
+	  PM_BMI_SR >= 25.00 ~ "Overweight",
+		PM_BMI_SR < 25.00 ~ "Not Overweight"
+	))
+
+table(data$bmi_overweight)
+```
+
+**Age**
+
+```{r}
+glimpse(data$SDC_AGE_CALC)
+
+summary(data$SDC_AGE_CALC) ### Lots of NAs! 
+
+data <- data %>%
+	mutate(age_45 = case_when(
+	  SDC_AGE_CALC >= 45.00 ~ "Over 45",
+		SDC_AGE_CALC < 45.00 ~ "Under 45"
+	))
+
+table(data$age_45)
+```
+
+**Physical Activity**
+
+```{r}
+glimpse(data$PA_LEVEL_SHORT)
+
+table(data$PA_LEVEL_SHORT)
+
+data <- data %>%
+	mutate(pa_cat = case_when(
+		PA_LEVEL_SHORT == 1 ~ "1_Low Activity",
+		PA_LEVEL_SHORT == 2 ~ "2_Moderate Activity",
+		PA_LEVEL_SHORT == 3 ~ "3_High Activity"
+	))
+
+table(data$pa_cat, data$PA_LEVEL_SHORT)
+```
+
+**Racialized**
+
+```{r}
+table(data$SDC_EB_ABORIGINAL)
+table(data$SDC_EB_LATIN)
+table(data$SDC_EB_BLACK)
+
+### Latinx
+
+data <- data %>%
+	mutate(latinx = case_when(
+		SDC_EB_LATIN == 1 ~ "Yes",
+		SDC_EB_LATIN == 0 ~ "No"
+	))
+
+table(data$SDC_EB_LATIN, data$latinx)
+
+### Indigenous
+
+data <- data %>%
+	mutate(indigenous = case_when(
+		SDC_EB_ABORIGINAL == 1 ~ "Yes",
+		SDC_EB_ABORIGINAL == 0 ~ "No"
+	))
+
+table(data$SDC_EB_ABORIGINAL, data$indigenous)
+
+### Black
+
+data <- data %>%
+	mutate(eb_black = case_when(
+		SDC_EB_BLACK == 1 ~ "Yes",
+		SDC_EB_BLACK == 0 ~ "No"
+	))
+
+table(data$SDC_EB_BLACK, data$eb_black)
+```
+
+**Fatty liver disease**
+
+```{r}
+table(data$DIS_LIVER_FATTY_EVER)
+
+data <- data %>%
+	mutate(fatty_liver = case_when(
+		DIS_LIVER_FATTY_EVER == 1 ~ "Yes",
+		DIS_LIVER_FATTY_EVER == 2 ~ "Yes"
+	))
+
+data <- data %>%
+	mutate(fatty_liver = case_when(
+		DIS_LIVER_FATTY_EVER == 1 ~ "Yes",
+		DIS_LIVER_FATTY_EVER == 2 ~ "Yes"
+	))
+
+data <- data %>% 
+                  mutate(fatty_liver = replace_na(fatty_liver, "No"))
+
+table(data$fatty_liver)
+```
+
+**Replacing all -7 values with NA**
+
+```{r}
+table(data$diabetes_t2)
+
+data <- data %>%
+   mutate(across(where(is.numeric), ~na_if(., -7)))
+```
+
+#### 3. Imputing data 
+
+We are going to imput missing data using the `mice` package. Not going to talk about this really but it's easier to deal with a dataset with no missing data.
+
+```{r}
+mice_imputed <- mice(data, m = 1)
+data_1 <- complete(mice_imputed, 1) 
+write_csv(data_1, "data_imputed_1.csv")
+```

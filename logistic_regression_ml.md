@@ -9,163 +9,20 @@ output:
 ``` r
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
-```
-
-```
-## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
-## ✔ dplyr     1.1.4     ✔ readr     2.1.5
-## ✔ forcats   1.0.0     ✔ stringr   1.5.1
-## ✔ ggplot2   3.5.1     ✔ tibble    3.2.1
-## ✔ lubridate 1.9.3     ✔ tidyr     1.3.1
-## ✔ purrr     1.0.2     
-## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
-## ✖ dplyr::filter() masks stats::filter()
-## ✖ dplyr::lag()    masks stats::lag()
-## ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
-```
-
-``` r
 library(tidymodels)
-```
-
-```
-## ── Attaching packages ────────────────────────────────────── tidymodels 1.2.0 ──
-## ✔ broom        1.0.6     ✔ rsample      1.2.1
-## ✔ dials        1.3.0     ✔ tune         1.2.1
-## ✔ infer        1.0.7     ✔ workflows    1.1.4
-## ✔ modeldata    1.4.0     ✔ workflowsets 1.1.0
-## ✔ parsnip      1.2.1     ✔ yardstick    1.3.1
-## ✔ recipes      1.1.0     
-## ── Conflicts ───────────────────────────────────────── tidymodels_conflicts() ──
-## ✖ scales::discard() masks purrr::discard()
-## ✖ dplyr::filter()   masks stats::filter()
-## ✖ recipes::fixed()  masks stringr::fixed()
-## ✖ dplyr::lag()      masks stats::lag()
-## ✖ yardstick::spec() masks readr::spec()
-## ✖ recipes::step()   masks stats::step()
-## • Learn how to get started at https://www.tidymodels.org/start/
-```
-
-``` r
 library(sjPlot)
 library(finalfit)
 library(knitr)
-library(jtools)
-```
-
-```
-## 
-## Attaching package: 'jtools'
-## 
-## The following object is masked from 'package:yardstick':
-## 
-##     get_weights
-```
-
-``` r
-library(marginaleffects)
-library(lindia)
-library(emmeans)
-```
-
-```
-## Welcome to emmeans.
-## Caution: You lose important information if you filter this package's results.
-## See '? untidy'
-```
-
-``` r
 library(gtsummary)
 library(mlbench)
 library(rms)
-```
-
-```
-## Loading required package: Hmisc
-## 
-## Attaching package: 'Hmisc'
-## 
-## The following object is masked from 'package:jtools':
-## 
-##     %nin%
-## 
-## The following object is masked from 'package:parsnip':
-## 
-##     translate
-## 
-## The following objects are masked from 'package:dplyr':
-## 
-##     src, summarize
-## 
-## The following objects are masked from 'package:base':
-## 
-##     format.pval, units
-## 
-## 
-## Attaching package: 'rms'
-## 
-## The following object is masked from 'package:emmeans':
-## 
-##     contrast
-```
-
-``` r
 library(vip)
-```
-
-```
-## 
-## Attaching package: 'vip'
-## 
-## The following object is masked from 'package:utils':
-## 
-##     vi
-```
-
-``` r
-library(psych)
-```
-
-```
-## 
-## Attaching package: 'psych'
-## 
-## The following object is masked from 'package:Hmisc':
-## 
-##     describe
-## 
-## The following objects are masked from 'package:scales':
-## 
-##     alpha, rescale
-## 
-## The following objects are masked from 'package:ggplot2':
-## 
-##     %+%, alpha
-```
-
-``` r
-library(corrr)
 library(rsample)
 library(tune)
 library(recipes)
 library(yardstick)
 library(parsnip)
 library(glmnet)
-```
-
-```
-## Loading required package: Matrix
-## 
-## Attaching package: 'Matrix'
-## 
-## The following objects are masked from 'package:tidyr':
-## 
-##     expand, pack, unpack
-## 
-## Loaded glmnet 4.1-8
-```
-
-``` r
 library(themis)
 ```
 
@@ -331,6 +188,99 @@ summary(biostats_logistic)
 ## 
 ## Number of Fisher Scoring iterations: 6
 ```
+
+``` r
+multi_table <- tbl_regression(biostats_logistic, exponentiate = TRUE) 
+multi_table %>% as_kable()
+```
+
+
+
+|**Characteristic**  | **OR** | **95% CI** | **p-value** |
+|:-------------------|:------:|:----------:|:-----------:|
+|PM_BMI_SR           |  1.00  | 1.00, 1.00 |   <0.001    |
+|SDC_AGE_CALC        |  1.06  | 1.05, 1.06 |   <0.001    |
+|pa_cat              |        |            |             |
+|1_Low Activity      |   —    |     —      |             |
+|2_Moderate Activity |  1.02  | 0.91, 1.14 |     0.8     |
+|3_High Activity     |  0.99  | 0.89, 1.11 |    >0.9     |
+|latinx              |        |            |             |
+|No                  |   —    |     —      |             |
+|Yes                 |  0.81  | 0.50, 1.24 |     0.4     |
+|indigenous          |        |            |             |
+|No                  |   —    |     —      |             |
+|Yes                 |  1.05  | 0.84, 1.31 |     0.7     |
+|eb_black            |        |            |             |
+|No                  |   —    |     —      |             |
+|Yes                 |  1.31  | 0.90, 1.84 |    0.14     |
+|fatty_liver         |        |            |             |
+|No                  |   —    |     —      |             |
+|Yes                 |  1.57  | 0.99, 2.38 |    0.044    |
+|SDC_MARITAL_STATUS  |        |            |             |
+|1                   |   —    |     —      |             |
+|2                   |  0.97  | 0.83, 1.14 |     0.8     |
+|3                   |  0.94  | 0.75, 1.17 |     0.6     |
+|4                   |  1.07  | 0.84, 1.35 |     0.6     |
+|5                   |  1.18  | 1.00, 1.39 |    0.047    |
+|SDC_EDU_LEVEL       |        |            |             |
+|0                   |   —    |     —      |             |
+|1                   |  0.88  | 0.39, 2.26 |     0.8     |
+|2                   |  0.76  | 0.35, 1.89 |     0.5     |
+|3                   |  0.85  | 0.40, 2.13 |     0.7     |
+|4                   |  0.72  | 0.34, 1.80 |     0.4     |
+|5                   |  0.81  | 0.37, 2.04 |     0.6     |
+|6                   |  0.81  | 0.38, 2.03 |     0.6     |
+|7                   |  0.89  | 0.41, 2.22 |     0.8     |
+|SDC_INCOME          |        |            |             |
+|1                   |   —    |     —      |             |
+|2                   |  1.01  | 0.72, 1.44 |    >0.9     |
+|3                   |  0.91  | 0.66, 1.27 |     0.6     |
+|4                   |  0.93  | 0.68, 1.31 |     0.7     |
+|5                   |  0.89  | 0.64, 1.26 |     0.5     |
+|6                   |  0.94  | 0.68, 1.33 |     0.7     |
+|7                   |  1.02  | 0.71, 1.47 |    >0.9     |
+|8                   |  0.78  | 0.53, 1.17 |     0.2     |
+|HS_GEN_HEALTH       |        |            |             |
+|1                   |   —    |     —      |             |
+|2                   |  1.05  | 0.84, 1.31 |     0.7     |
+|3                   |  0.47  | 0.38, 0.58 |   <0.001    |
+|4                   |  0.21  | 0.17, 0.26 |   <0.001    |
+|5                   |  0.15  | 0.11, 0.20 |   <0.001    |
+|NUT_VEG_QTY         |  0.99  | 0.96, 1.02 |     0.4     |
+|NUT_FRUITS_QTY      |  1.07  | 1.03, 1.10 |   <0.001    |
+|ALC_CUR_FREQ        |  0.93  | 0.91, 0.95 |   <0.001    |
+|SDC_BIRTH_COUNTRY   |        |            |             |
+|1                   |   —    |     —      |             |
+|2                   |  1.24  | 0.85, 1.75 |     0.3     |
+|3                   |  0.58  | 0.09, 1.92 |     0.5     |
+|4                   |  1.28  | 0.82, 1.92 |     0.2     |
+|5                   |  0.83  | 0.20, 2.38 |     0.8     |
+|6                   |  1.22  | 0.80, 1.79 |     0.3     |
+|7                   |  1.45  | 0.43, 3.71 |     0.5     |
+|8                   |  0.91  | 0.38, 1.87 |     0.8     |
+|9                   |  1.71  | 0.99, 2.79 |    0.041    |
+|10                  |  1.25  | 0.52, 2.62 |     0.6     |
+|11                  |  0.59  | 0.03, 3.03 |     0.6     |
+|12                  |  2.22  | 1.30, 3.60 |    0.002    |
+|13                  |  0.52  | 0.20, 1.11 |    0.13     |
+|14                  |  0.48  | 0.08, 1.57 |     0.3     |
+|15                  |  0.50  | 0.08, 1.62 |     0.3     |
+|16                  |  0.62  | 0.10, 2.09 |     0.5     |
+|17                  |  1.09  | 0.89, 1.32 |     0.4     |
+|18                  |  0.88  | 0.63, 1.21 |     0.4     |
+|19                  |  1.24  | 0.29, 3.62 |     0.7     |
+|20                  |  0.94  | 0.78, 1.13 |     0.5     |
+|PA_SIT_AVG_TIME_DAY |  1.00  | 1.00, 1.00 |     0.4     |
+|SMK_CIG_STATUS      |        |            |             |
+|0                   |   —    |     —      |             |
+|1                   |  1.04  | 0.94, 1.15 |     0.4     |
+|2                   |  0.85  | 0.61, 1.16 |     0.3     |
+|3                   |  1.33  | 1.14, 1.54 |   <0.001    |
+|SLE_TIME            |  1.00  | 1.00, 1.00 |    0.012    |
+|DIS_DIAB_FAM_EVER   |        |            |             |
+|0                   |   —    |     —      |             |
+|1                   |  1.89  | 1.70, 2.10 |   <0.001    |
+|2                   |  0.84  | 0.73, 0.97 |    0.017    |
 
 We would then use the ORs, CIs, and p-values to get information about the strength, direction, and probability that the association is due to chance or not (Not getting the p-value debate here). 
 
@@ -984,7 +934,7 @@ autoplot(diabetes_wflow_oversamp_tune)
 
 ![](logistic_regression_ml_files/figure-html/unnamed-chunk-23-1.png)<!-- -->
 
-Here we can see that based on tuning the model accuracy ranges from 0.904 to 0.945. That's a 4% improvement! I have seen hyperparameter tuning improve models by more than 10% so this is a reasonable improvement. We also get the specific values for the penalty and mixutre that we can run in a final model. The 
+Here we can see that based on tuning the model accuracy ranges from 0.904 to 0.945. That's a 4% improvement! I have seen hyperparameter tuning improve models by more than 10% so this is a reasonable improvement. We also get the specific values for the penalty and mixutre that we can run in a final model. Here we also get two different tuning specifications with the same accuracy. So we might have to make a decision about which one is more appropriate depending on our data.  
 
 ### 3.5. Transforming features (variables)
 
