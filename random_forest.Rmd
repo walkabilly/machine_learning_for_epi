@@ -1,0 +1,199 @@
+---
+title: "Random Forest"
+author: "Daniel Fuller"
+date: "2024-09-23"
+output:
+      html_document:
+        keep_md: true
+---
+
+```{r setup, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(tidymodels)
+library(sjPlot)
+library(finalfit)
+library(knitr)
+library(gtsummary)
+library(mlbench)
+library(rms)
+library(vip)
+library(rsample)
+library(tune)
+library(recipes)
+library(yardstick)
+library(parsnip)
+library(glmnet)
+library(themis)
+library(microbenchmark)
+library(ranger)
+library(randomForest)
+library(party)
+library(partykit)
+library(rpart)
+library(rpart.plot)
+```
+
+# 1. Random Forest
+
+Here we are going to expand on our logistic regression analysis and conduct a similar approach with Random Forest models. If you missed the Logistic Regression approach [start here first](https://github.com/walkabilly/machine_learning_for_epi/blob/main/logistic_regression_ml.Rmd). 
+
+> Random forests or random decision forests is an ensemble learning method for classification, regression and other tasks that operates by constructing a multitude of decision trees at training time. For classification tasks, the output of the random forest is the class selected by most trees. For regression tasks, the mean or average prediction of the individual trees is returned. [wiki](https://en.wikipedia.org/wiki/Random_forest)
+
+## 2. Research question and data
+
+We are using an imputed (ie. no missing data) version of the CanPath student dataset [https://canpath.ca/student-dataset/](https://canpath.ca/student-dataset/). The nice thing about this dataset is that it's pretty big in terms of sample size, has lots of variables, and we can use it for free. 
+
+Our research question is:  
+
+- **Can we develop a model that will predict type 2 diabetes**
+
+We have identified that the following factors are associated with type 2 diabetes:   
+
+- `PM_BMI_SR` = Are overweight
+- `SDC_AGE_CALC` = Are 45 years or older
+- `No varaible in data` = Have a parent, brother, or sister with type 2 diabetes
+- `PA_LEVEL_LONG` = Are physically active less than 3 times a week
+- `diabetes == "Gestational"` = Have ever had gestational diabetes (diabetes during pregnancy) or given birth to a baby who weighed over 9 pounds
+- `SDC_EB_ABORIGINAL` + `SDC_EB_LATIN` + `SDC_EB_BLACK` = Are an African American, Hispanic or Latino, American Indian, or Alaska Native person
+- `DIS_LIVER_FATTY_EVER` = Have non-alcoholic fatty liver disease
+
+### Reading in data
+
+Here are reading in data and getting organized to run our models. 
+
+```{r}
+data <- read_csv("data_imputed.csv")
+
+data$diabetes <- NULL
+
+cols <- c("pa_cat", "latinx", "indigenous", "eb_black", "fatty_liver", "SDC_MARITAL_STATUS", "SDC_EDU_LEVEL", "SDC_INCOME", "HS_GEN_HEALTH",  "SDC_BIRTH_COUNTRY", "SMK_CIG_STATUS", "DIS_DIAB_FAM_EVER", "DIS_DIAB_FAM_EVER", "HS_ROUTINE_VISIT_EVER", "DIS_STROKE_EVER", "DIS_COPD_EVER", "DIS_LC_EVER", "DIS_IBS_EVER", "DIS_DIAB_FAM_EVER", "WRK_FULL_TIME", "WRK_STUDENT", "PM_BMI_SR", "PM_WEIGHT_SR_AVG")
+data %<>% mutate_at(cols, factor)
+
+data$diabetes_t2 <- as.factor(data$diabetes_t2)
+data$PM_BMI_SR <- as.numeric(data$PM_BMI_SR)
+data$PM_WEIGHT_SR_AVG <- as.numeric(data$PM_WEIGHT_SR_AVG)
+```
+
+```{r}
+# Fix the random numbers by setting the seed 
+# This enables the analysis to be reproducible when random numbers are used 
+set.seed(10)
+
+data_split <- initial_split(data, prop = 0.70, strata = diabetes_t2)
+
+# Create data frames for the two sets:
+train_data <- training(data_split)
+table(train_data$diabetes_t2)
+
+test_data  <- testing(data_split)
+table(test_data$diabetes_t2)
+```
+
+## 3. Random Forest
+
+We are going to use Random Forest models here. We already know from the logistic regression approach that we need to upsample the data to get better model performance. We are just going to run a Random Forest model without much intervention. We are using the `ranger` package here but there are other packages for random forest models available in R. First, let's setup the Random Forest models. In general, there are 3 key hyperparameters we need to examine
+
+1. `mtry` (the number of predictors to sample at each split)
+2. `min_n` (the number of observations needed to keep splitting nodes)
+3. `tress` (number of trees in the model)
+
+```{}
+rf_model <- rand_forest() %>%
+        set_engine("ranger") %>%
+        set_mode("classification") %>%
+        fit(diabetes_t2 ~ PM_BMI_SR + SDC_AGE_CALC + pa_cat + latinx + indigenous + eb_black + fatty_liver + SDC_MARITAL_STATUS + SDC_EDU_LEVEL + SDC_INCOME + HS_GEN_HEALTH + NUT_VEG_QTY + NUT_FRUITS_QTY + ALC_CUR_FREQ + SDC_BIRTH_COUNTRY + PA_SIT_AVG_TIME_DAY + SMK_CIG_STATUS + SLE_TIME + DIS_DIAB_FAM_EVER + HS_ROUTINE_VISIT_EVER + DIS_STROKE_EVER + DIS_COPD_EVER + DIS_LC_EVER + DIS_IBS_EVER + DIS_DIAB_FAM_EVER + WRK_FULL_TIME + WRK_STUDENT + PM_WEIGHT_SR_AVG, data = train_data)
+
+dt_model <- rpart(diabetes_t2 ~ PM_BMI_SR + SDC_AGE_CALC, method = 'class', data = train_data, control = rpart.control(maxdepth = 30))
+
+dt_model
+
+rpart.plot(dt_model)
+
+plot(as.party(dt_model), tp_args = list(beside = TRUE))
+```
+
+Here we have some general information about the model. There were 500 trees in the model, 27 independent variables, 5 predictors to sample at each split, and the minimum number of observations of 10 for splitting nodes. 
+
+```{}
+print(rf_model)
+```
+
+
+```{}
+  mtry = tune(),
+  trees = 1000,
+  min_n = tune()
+) %>%
+   %>%
+  set_engine("ranger")
+```
+
+Here we are setting up the recipe and the workflow for the model. 
+
+```{r}
+rf_model <- rand_forest(
+        mode = "classification",
+        engine = "ranger")
+```
+
+```{r}
+diabetes_rec_oversamp_rf <- 
+  recipe(diabetes_t2 ~ ., data = train_data) %>%
+  step_upsample(diabetes_t2, over_ratio = 0.3) %>%
+  step_unknown() %>%
+  step_normalize(all_numeric_predictors()) %>%
+  step_dummy(all_nominal_predictors())
+
+diabetes_wflow_oversamp_rf <- 
+  workflow() %>% 
+  add_model(rf_model) %>% 
+  add_recipe(diabetes_rec_oversamp_rf) 
+
+diabetes_wflow_oversamp_rf
+
+diabetes_fit_oversamp_rf <- 
+  diabetes_wflow_oversamp_rf %>% 
+  fit(data = train_data)
+
+diabetes_fit_oversamp_test_rf <- 
+  augment(diabetes_fit_oversamp_rf, test_data)
+
+diabetes_fit_oversamp_all_metrics_rf <- metrics(diabetes_fit_oversamp_test_rf,
+               truth = diabetes_t2,
+               estimate = .pred_class)
+               
+```
+
+
+
+show_best(diabetes_wflow_oversamp_rf, metric='accuracy', n=5)  # only show the results for the best 5 models
+
+
+tune_spec <- rand_forest(
+  mtry = tune(),
+  trees = 1000,
+  min_n = tune()
+) %>%
+  set_mode("classification") %>%
+  set_engine("ranger")
+
+Finally, let’s put these together in a workflow(), which is a convenience container object for carrying around bits of models.
+
+tune_wf <- workflow() %>%
+  add_recipe(tree_rec) %>%
+  add_model(tune_spec)
+
+```
+
+References
+
+https://bradleyboehmke.github.io/HOML/DT.html
+
+1. https://www.tidymodels.org/start/case-study/#second-model
+
+https://juliasilge.com/blog/sf-trees-random-tuning/
+
+https://jmsallan.netlify.app/blog/introducing-random-forests-in-r
+
+https://bradleyboehmke.github.io/HOML/random-forest.html

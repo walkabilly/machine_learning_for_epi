@@ -1,5 +1,7 @@
 ---
 title: "Logistic Regression"
+author: "Daniel Fuller"
+date: "2024-09-23"
 output:
       html_document:
         keep_md: true
@@ -23,6 +25,7 @@ library(yardstick)
 library(parsnip)
 library(glmnet)
 library(themis)
+library(microbenchmark)
 ```
 
 # 1. Logistic Regression - The Machine Learning Way
@@ -403,7 +406,7 @@ Depending on the ML model there are different hyperparameters we might want to t
 * Lasso regression: the coefficients of some less contributive variables are forced to be exactly zero. Only the most significant variables are kept in the final model.
 * Elastic net regression: the combination of ridge and lasso regression. It shrinks some coefficients toward zero (like ridge regression) and set some coefficients to exactly zero (like lasso regression)
 
-Here we are going to use the same setup as before with our up-sampled and 10 fold cross validation approach and add in the hyperparameter testing. We will go from using the `gml` engine in R to the `glmnet` package for estimates. From the package description
+Here we are going to use the same setup as before with our up-sampled and 10 fold cross validation approach and add in the hyperparameter testing. We will go from using the `glm` engine in R to the `glmnet` package for estimates. From the package description
 
 > Extremely efficient procedures for fitting the entire lasso or elastic-net regularization path for linear regression, logistic and multinomial regression models, Poisson regression, Cox model, multiple-response Gaussian, and the grouped multinomial regression; see [https://doi.org/10.18637/jss.v033.i01](https://doi.org/10.18637/jss.v033.i01) and [https://doi.org/10.18637/jss.v039.i05](https://doi.org/10.18637/jss.v039.i05). 
 
@@ -431,28 +434,55 @@ Here we can see that based on tuning the model accuracy ranges from 0.904 to 0.9
 
 ### 3.5. Transforming features (variables)
 
+In machine learning these is a lot of emphasis placed on data pre-processing. Here we are going to talk about two approaches that you are probably familiar with but not in the machine learning context. Normalization/Standardization and creating one-hot encoding/dummy variables. 
 
+#### Normalization/Standardization
 
-## 4. Machine Learning - Random Forest
+Common practice in ML is normalize/standardize/z-score all of the continuous variables in a model. This creates variables with a mean of 0 and a standard deviation of 1. Doing this makes the specific coefficients of the association between the feature and outcome less interpretable BUT it helps a lot with model convergence and speed. Having continuous variables on lots of different scales can quickly create problems with model convergence. 
 
+#### One-hot encoding/dummy variables
 
+One-hot encoding or dummy variable coding converts all categorical variables into 0/1 versions of those variables rather than having them as factors with a dataframe. This encoding creates dummy variables from all categorical predictors. This again, speeds up computation time and can help with interpretation. It's not 100% necessary to do this, but you will see that it is common practice and often it's important just to know the words.
+
+We can easily rerun our best model with normalized continuous predictors using the `step_normalize` function and the `step_dummy` 
+
+```{r}
+diabetes_rec_oversamp_norm <- 
+  recipe(diabetes_t2 ~ ., data = train_data) %>%
+  step_upsample(diabetes_t2, over_ratio = 0.3) %>%
+  step_unknown() %>%
+  step_normalize(all_numeric_predictors()) %>%
+  step_dummy(all_nominal_predictors())
+
+diabetes_wflow_oversamp_tune_norm <- 
+  workflow() %>% 
+  add_model(logistic_m_mixture) %>% 
+  add_recipe(diabetes_rec_oversamp_norm) %>% 
+  tune_grid(resamples = folds) 
+
+show_best(diabetes_wflow_oversamp_tune_norm, metric='accuracy', n=5)  # only show the results for the best 5 models
+```
+
+### Benchmarks 
+
+We can check how long each model took to run using the `microbenchmark` package. These are nanoseconds, so there is no real difference here but this is a simple model with small data. 
+
+```{r, warning = FALSE}
+microbenchmark(logistic_model, diabetes_wflow_oversamp, diabetes_wflow_oversamp_tune, diabetes_wflow_oversamp_tune_norm)
+```
 
 # References
 
-https://medium.com/the-researchers-guide/modelling-binary-logistic-regression-using-tidymodels-library-in-r-part-1-c1bdce0ac055
+1. Modelling Binary Logistic Regression using Tidymodels Library in R (Part-1). [https://medium.com/the-researchers-guide/modelling-binary-logistic-regression-using-tidymodels-library-in-r-part-1-c1bdce0ac055](https://medium.com/the-researchers-guide/modelling-binary-logistic-regression-using-tidymodels-library-in-r-part-1-c1bdce0ac055)
+2. STAT 253: Statistical Machine Learning. [https://bcheggeseth.github.io/253_spring_2024/tidymodels-cheatsheet.html#logistic-regression](https://bcheggeseth.github.io/253_spring_2024/tidymodels-cheatsheet.html#logistic-regression)
+3. Tidymodels. [https://www.tidymodels.org/start/](https://www.tidymodels.org/start/)
+4. Fitting Models with parsnip. [https://www.tmwr.org/models](https://www.tmwr.org/models)
+5. Up-Sample a Data Set Based on a Factor Variable. [https://themis.tidymodels.org/reference/step_upsample.html](https://themis.tidymodels.org/reference/step_upsample.html)
+6. Logistic regression. [https://parsnip.tidymodels.org/reference/logistic_reg.html](https://parsnip.tidymodels.org/reference/logistic_reg.html)
+7. Hyperparameter tuning and model stacking using tidymodels in R. [https://www.stepbystepdatascience.com/tuning-hyperparameters-tidymodels](https://www.stepbystepdatascience.com/tuning-hyperparameters-tidymodels)
+8. Machine learning in R with tidymodels. [https://www.stepbystepdatascience.com/ml-with-tidymodels](https://www.stepbystepdatascience.com/ml-with-tidymodels)
+9.  Penalized Logistic Regression Essentials in R: Ridge, Lasso and Elastic Net . [http://sthda.com/english/articles/36-classification-methods-essentials/149-penalized-logistic-regression-essentials-in-r-ridge-lasso-and-elastic-net/](http://sthda.com/english/articles/36-classification-methods-essentials/149-penalized-logistic-regression-essentials-in-r-ridge-lasso-and-elastic-net/)
+10. A Guide to Logistic Regression in SAS. [https://communities.sas.com/t5/SAS-Communities-Library/A-Guide-to-Logistic-Regression-in-SAS/ta-p/564323](https://communities.sas.com/t5/SAS-Communities-Library/A-Guide-to-Logistic-Regression-in-SAS/ta-p/564323)
+11. Data-Driven Analytics in SAS Viya – Logistic Regression Model Results Interpretation. [https://communities.sas.com/t5/SAS-Communities-Library/Data-Driven-Analytics-in-SAS-Viya-Logistic-Regression-Model/ta-p/944645](https://communities.sas.com/t5/SAS-Communities-Library/Data-Driven-Analytics-in-SAS-Viya-Logistic-Regression-Model/ta-p/944645)
 
-https://bcheggeseth.github.io/253_spring_2024/tidymodels-cheatsheet.html#logistic-regression
 
-https://www.tidymodels.org/start/
-
-https://www.tmwr.org/models
-
-https://themis.tidymodels.org/reference/step_upsample.html
-
-https://parsnip.tidymodels.org/reference/logistic_reg.html
-
-https://www.stepbystepdatascience.com/tuning-hyperparameters-tidymodels 
-
-https://www.stepbystepdatascience.com/ml-with-tidymodels
-
-http://sthda.com/english/articles/36-classification-methods-essentials/149-penalized-logistic-regression-essentials-in-r-ridge-lasso-and-elastic-net/
