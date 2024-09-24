@@ -83,8 +83,6 @@ table(data$diabetes_t2)
 biostats_logistic <- glm(diabetes_t2 ~ PM_BMI_SR + SDC_AGE_CALC + pa_cat + latinx + indigenous + eb_black + fatty_liver + SDC_MARITAL_STATUS + SDC_EDU_LEVEL + SDC_INCOME + HS_GEN_HEALTH + NUT_VEG_QTY + NUT_FRUITS_QTY + ALC_CUR_FREQ + SDC_BIRTH_COUNTRY + PA_SIT_AVG_TIME_DAY + SMK_CIG_STATUS + SLE_TIME + DIS_DIAB_FAM_EVER, data = data, family = "binomial")
 summary(biostats_logistic)
 
-multi_table <- tbl_regression(biostats_logistic, exponentiate = TRUE) 
-multi_table %>% as_kable()
 ```
 
 We would then use the ORs, CIs, and p-values to get information about the strength, direction, and probability that the association is due to chance or not (Not getting the p-value debate here). 
@@ -249,10 +247,10 @@ Our model has got a ROC-AUC score of 0.227 indicating a good model that cannot d
 ```{r}
 roc_auc(diabetes_results,
         truth = diabetes_t2,
-        .pred_1)
+        .pred_0)
 
 roc_curve <- diabetes_results %>%
-  roc_curve(truth = diabetes_t2, .pred_1) %>%
+  roc_curve(truth = diabetes_t2, .pred_0) %>%
   autoplot()
 
 plot(roc_curve)
@@ -307,17 +305,20 @@ One thing that we can do is up-scale the lowest class (or classes) or the outcom
 #### Up-scaling Example
 
 ```{r}
+### Showing the distribution of diabetes (yes/no) in the real data
 table(train_data$diabetes_t2)
 
 ggplot(train_data) + 
     geom_bar(aes(diabetes_t2))
 
+### Creating a recipe were we upsample the diabetes yes category to be 30% of the diabetes no category. This is an arbitrary number and you will need to play with this.
 diabetes_rec_oversamp <- 
   recipe(diabetes_t2 ~ ., data = train_data) %>%
   step_upsample(diabetes_t2, over_ratio = 0.3) %>%
   step_unknown() %>%
   step_dummy(all_nominal_predictors()) 
 
+### Visualization of the 30% ratio
 recipe(~., train_data) %>%
   step_upsample(diabetes_t2, over_ratio = 0.3) %>%
   prep() %>%
@@ -330,7 +331,7 @@ Here we upscale the `diabetes-Yes` category to 30% of the of the `diabetes-No` c
 
 **Up-scaling regression**
 
-Setup the recipe and metrics 
+Setup the recipe and metrics. Here we are specifying the model we want to use. 
 
 ```{r}
 logistic_m <- logistic_reg(
@@ -339,7 +340,12 @@ logistic_m <- logistic_reg(
               )
 ```
 
-Logistic regression results based on up-scaling 
+Logistic regression results based on up-scaling. Here we setup the workflow. A workflow must includ the following
+
+* A Recipe `add_recipe` which is how we tell the workflow to process the data. 
+* A Model `add_model` which specifies the model paramaters
+
+Once we save the workflow we can run the same model in different ways. More on this later. 
 
 ```{r}
 diabetes_wflow_oversamp <- 
@@ -348,11 +354,17 @@ diabetes_wflow_oversamp <-
   add_recipe(diabetes_rec_oversamp)
 
 diabetes_wflow_oversamp
+```
 
+Now we will actually fit the model to the data using the recipe and `fit` command. 
+
+```{r, messages = FALSE}
 diabetes_fit_oversamp <- 
   diabetes_wflow_oversamp %>% 
   fit(data = train_data)
+```
 
+```{r}
 diabetes_fit_oversamp %>% 
   extract_fit_parsnip() %>% 
   tidy()
@@ -381,8 +393,8 @@ Here we will use our new up-scaled data and apply 10 fold cross-validation appro
 
 ![](https://static.wixstatic.com/media/ea0077_8bf9cf19b5ce4f24816ac8d7a1da00fd~mv2.png/v1/fill/w_804,h_452,al_c,q_90,usm_0.66_1.00_0.01,enc_auto/Resampling_PNG.png)
 
-```{r}
-folds <- vfold_cv(train_data, v = 10)
+```{r, messages = FALSE}
+folds <- vfold_cv(train_data, v = 5) ## normally you would do at least 10 folds. Just doing 5 because it's faster.
 
 diabetes_fit_kfold <- 
       diabetes_wflow_oversamp %>% 
@@ -410,7 +422,7 @@ Here we are going to use the same setup as before with our up-sampled and 10 fol
 
 > Extremely efficient procedures for fitting the entire lasso or elastic-net regularization path for linear regression, logistic and multinomial regression models, Poisson regression, Cox model, multiple-response Gaussian, and the grouped multinomial regression; see [https://doi.org/10.18637/jss.v033.i01](https://doi.org/10.18637/jss.v033.i01) and [https://doi.org/10.18637/jss.v039.i05](https://doi.org/10.18637/jss.v039.i05). 
 
-```{r}
+```{r, messages = FALSE, warning = FALSE}
 logistic_m_mixture <- logistic_reg(
                 mode = "classification",
                 engine = "glmnet",
@@ -421,7 +433,9 @@ logistic_m_mixture <- logistic_reg(
 diabetes_wflow_oversamp_tune <- workflow() %>% 
           add_model(logistic_m_mixture) %>% 
           add_recipe(diabetes_rec_oversamp) %>% 
-          tune_grid(resamples = folds) 
+          tune_grid(resamples = folds,
+                    control = control_grid(save_pred = TRUE, 
+                                            verbose = FALSE)) ## Edit for running live
 
 collect_metrics(diabetes_wflow_oversamp_tune) 
 
@@ -458,7 +472,9 @@ diabetes_wflow_oversamp_tune_norm <-
   workflow() %>% 
   add_model(logistic_m_mixture) %>% 
   add_recipe(diabetes_rec_oversamp_norm) %>% 
-  tune_grid(resamples = folds) 
+  tune_grid(resamples = folds,
+                    control = control_grid(save_pred = TRUE, 
+                                             verbose = FALSE)) ## Edit for running live
 
 show_best(diabetes_wflow_oversamp_tune_norm, metric='accuracy', n=5)  # only show the results for the best 5 models
 ```

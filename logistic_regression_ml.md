@@ -1,5 +1,7 @@
 ---
 title: "Logistic Regression"
+author: "Daniel Fuller"
+date: "2024-09-23"
 output:
       html_document:
         keep_md: true
@@ -24,6 +26,7 @@ library(yardstick)
 library(parsnip)
 library(glmnet)
 library(themis)
+library(microbenchmark)
 ```
 
 # 1. Logistic Regression - The Machine Learning Way
@@ -188,99 +191,6 @@ summary(biostats_logistic)
 ## 
 ## Number of Fisher Scoring iterations: 6
 ```
-
-``` r
-multi_table <- tbl_regression(biostats_logistic, exponentiate = TRUE) 
-multi_table %>% as_kable()
-```
-
-
-
-|**Characteristic**  | **OR** | **95% CI** | **p-value** |
-|:-------------------|:------:|:----------:|:-----------:|
-|PM_BMI_SR           |  1.00  | 1.00, 1.00 |   <0.001    |
-|SDC_AGE_CALC        |  1.06  | 1.05, 1.06 |   <0.001    |
-|pa_cat              |        |            |             |
-|1_Low Activity      |   —    |     —      |             |
-|2_Moderate Activity |  1.02  | 0.91, 1.14 |     0.8     |
-|3_High Activity     |  0.99  | 0.89, 1.11 |    >0.9     |
-|latinx              |        |            |             |
-|No                  |   —    |     —      |             |
-|Yes                 |  0.81  | 0.50, 1.24 |     0.4     |
-|indigenous          |        |            |             |
-|No                  |   —    |     —      |             |
-|Yes                 |  1.05  | 0.84, 1.31 |     0.7     |
-|eb_black            |        |            |             |
-|No                  |   —    |     —      |             |
-|Yes                 |  1.31  | 0.90, 1.84 |    0.14     |
-|fatty_liver         |        |            |             |
-|No                  |   —    |     —      |             |
-|Yes                 |  1.57  | 0.99, 2.38 |    0.044    |
-|SDC_MARITAL_STATUS  |        |            |             |
-|1                   |   —    |     —      |             |
-|2                   |  0.97  | 0.83, 1.14 |     0.8     |
-|3                   |  0.94  | 0.75, 1.17 |     0.6     |
-|4                   |  1.07  | 0.84, 1.35 |     0.6     |
-|5                   |  1.18  | 1.00, 1.39 |    0.047    |
-|SDC_EDU_LEVEL       |        |            |             |
-|0                   |   —    |     —      |             |
-|1                   |  0.88  | 0.39, 2.26 |     0.8     |
-|2                   |  0.76  | 0.35, 1.89 |     0.5     |
-|3                   |  0.85  | 0.40, 2.13 |     0.7     |
-|4                   |  0.72  | 0.34, 1.80 |     0.4     |
-|5                   |  0.81  | 0.37, 2.04 |     0.6     |
-|6                   |  0.81  | 0.38, 2.03 |     0.6     |
-|7                   |  0.89  | 0.41, 2.22 |     0.8     |
-|SDC_INCOME          |        |            |             |
-|1                   |   —    |     —      |             |
-|2                   |  1.01  | 0.72, 1.44 |    >0.9     |
-|3                   |  0.91  | 0.66, 1.27 |     0.6     |
-|4                   |  0.93  | 0.68, 1.31 |     0.7     |
-|5                   |  0.89  | 0.64, 1.26 |     0.5     |
-|6                   |  0.94  | 0.68, 1.33 |     0.7     |
-|7                   |  1.02  | 0.71, 1.47 |    >0.9     |
-|8                   |  0.78  | 0.53, 1.17 |     0.2     |
-|HS_GEN_HEALTH       |        |            |             |
-|1                   |   —    |     —      |             |
-|2                   |  1.05  | 0.84, 1.31 |     0.7     |
-|3                   |  0.47  | 0.38, 0.58 |   <0.001    |
-|4                   |  0.21  | 0.17, 0.26 |   <0.001    |
-|5                   |  0.15  | 0.11, 0.20 |   <0.001    |
-|NUT_VEG_QTY         |  0.99  | 0.96, 1.02 |     0.4     |
-|NUT_FRUITS_QTY      |  1.07  | 1.03, 1.10 |   <0.001    |
-|ALC_CUR_FREQ        |  0.93  | 0.91, 0.95 |   <0.001    |
-|SDC_BIRTH_COUNTRY   |        |            |             |
-|1                   |   —    |     —      |             |
-|2                   |  1.24  | 0.85, 1.75 |     0.3     |
-|3                   |  0.58  | 0.09, 1.92 |     0.5     |
-|4                   |  1.28  | 0.82, 1.92 |     0.2     |
-|5                   |  0.83  | 0.20, 2.38 |     0.8     |
-|6                   |  1.22  | 0.80, 1.79 |     0.3     |
-|7                   |  1.45  | 0.43, 3.71 |     0.5     |
-|8                   |  0.91  | 0.38, 1.87 |     0.8     |
-|9                   |  1.71  | 0.99, 2.79 |    0.041    |
-|10                  |  1.25  | 0.52, 2.62 |     0.6     |
-|11                  |  0.59  | 0.03, 3.03 |     0.6     |
-|12                  |  2.22  | 1.30, 3.60 |    0.002    |
-|13                  |  0.52  | 0.20, 1.11 |    0.13     |
-|14                  |  0.48  | 0.08, 1.57 |     0.3     |
-|15                  |  0.50  | 0.08, 1.62 |     0.3     |
-|16                  |  0.62  | 0.10, 2.09 |     0.5     |
-|17                  |  1.09  | 0.89, 1.32 |     0.4     |
-|18                  |  0.88  | 0.63, 1.21 |     0.4     |
-|19                  |  1.24  | 0.29, 3.62 |     0.7     |
-|20                  |  0.94  | 0.78, 1.13 |     0.5     |
-|PA_SIT_AVG_TIME_DAY |  1.00  | 1.00, 1.00 |     0.4     |
-|SMK_CIG_STATUS      |        |            |             |
-|0                   |   —    |     —      |             |
-|1                   |  1.04  | 0.94, 1.15 |     0.4     |
-|2                   |  0.85  | 0.61, 1.16 |     0.3     |
-|3                   |  1.33  | 1.14, 1.54 |   <0.001    |
-|SLE_TIME            |  1.00  | 1.00, 1.00 |    0.012    |
-|DIS_DIAB_FAM_EVER   |        |            |             |
-|0                   |   —    |     —      |             |
-|1                   |  1.89  | 1.70, 2.10 |   <0.001    |
-|2                   |  0.84  | 0.73, 0.97 |    0.017    |
 
 We would then use the ORs, CIs, and p-values to get information about the strength, direction, and probability that the association is due to chance or not (Not getting the p-value debate here). 
 
@@ -551,19 +461,19 @@ Our model has got a ROC-AUC score of 0.227 indicating a good model that cannot d
 ``` r
 roc_auc(diabetes_results,
         truth = diabetes_t2,
-        .pred_1)
+        .pred_0)
 ```
 
 ```
 ## # A tibble: 1 × 3
 ##   .metric .estimator .estimate
 ##   <chr>   <chr>          <dbl>
-## 1 roc_auc binary         0.226
+## 1 roc_auc binary         0.774
 ```
 
 ``` r
 roc_curve <- diabetes_results %>%
-  roc_curve(truth = diabetes_t2, .pred_1) %>%
+  roc_curve(truth = diabetes_t2, .pred_0) %>%
   autoplot()
 
 plot(roc_curve)
@@ -659,6 +569,7 @@ One thing that we can do is up-scale the lowest class (or classes) or the outcom
 
 
 ``` r
+### Showing the distribution of diabetes (yes/no) in the real data
 table(train_data$diabetes_t2)
 ```
 
@@ -676,12 +587,14 @@ ggplot(train_data) +
 ![](logistic_regression_ml_files/figure-html/unnamed-chunk-18-1.png)<!-- -->
 
 ``` r
+### Creating a recipe were we upsample the diabetes yes category to be 30% of the diabetes no category. This is an arbitrary number and you will need to play with this.
 diabetes_rec_oversamp <- 
   recipe(diabetes_t2 ~ ., data = train_data) %>%
   step_upsample(diabetes_t2, over_ratio = 0.3) %>%
   step_unknown() %>%
   step_dummy(all_nominal_predictors()) 
 
+### Visualization of the 30% ratio
 recipe(~., train_data) %>%
   step_upsample(diabetes_t2, over_ratio = 0.3) %>%
   prep() %>%
@@ -696,7 +609,7 @@ Here we upscale the `diabetes-Yes` category to 30% of the of the `diabetes-No` c
 
 **Up-scaling regression**
 
-Setup the recipe and metrics 
+Setup the recipe and metrics. Here we are specifying the model we want to use. 
 
 
 ``` r
@@ -706,7 +619,12 @@ logistic_m <- logistic_reg(
               )
 ```
 
-Logistic regression results based on up-scaling 
+Logistic regression results based on up-scaling. Here we setup the workflow. A workflow must includ the following
+
+* A Recipe `add_recipe` which is how we tell the workflow to process the data. 
+* A Model `add_model` which specifies the model paramaters
+
+Once we save the workflow we can run the same model in different ways. More on this later. 
 
 
 ``` r
@@ -736,11 +654,17 @@ diabetes_wflow_oversamp
 ## Computational engine: glm
 ```
 
+Now we will actually fit the model to the data using the recipe and `fit` command. 
+
+
 ``` r
 diabetes_fit_oversamp <- 
   diabetes_wflow_oversamp %>% 
   fit(data = train_data)
+```
 
+
+``` r
 diabetes_fit_oversamp %>% 
   extract_fit_parsnip() %>% 
   tidy()
@@ -813,7 +737,7 @@ Here we will use our new up-scaled data and apply 10 fold cross-validation appro
 
 
 ``` r
-folds <- vfold_cv(train_data, v = 10)
+folds <- vfold_cv(train_data, v = 5) ## normally you would do at least 10 folds. Just doing 5 because it's faster.
 
 diabetes_fit_kfold <- 
       diabetes_wflow_oversamp %>% 
@@ -824,20 +748,15 @@ diabetes_fit_kfold
 
 ```
 ## # Resampling results
-## # 10-fold cross-validation 
-## # A tibble: 10 × 4
-##    splits               id     .metrics         .notes          
-##    <list>               <chr>  <list>           <list>          
-##  1 <split [24816/2758]> Fold01 <tibble [3 × 4]> <tibble [0 × 3]>
-##  2 <split [24816/2758]> Fold02 <tibble [3 × 4]> <tibble [0 × 3]>
-##  3 <split [24816/2758]> Fold03 <tibble [3 × 4]> <tibble [0 × 3]>
-##  4 <split [24816/2758]> Fold04 <tibble [3 × 4]> <tibble [0 × 3]>
-##  5 <split [24817/2757]> Fold05 <tibble [3 × 4]> <tibble [0 × 3]>
-##  6 <split [24817/2757]> Fold06 <tibble [3 × 4]> <tibble [0 × 3]>
-##  7 <split [24817/2757]> Fold07 <tibble [3 × 4]> <tibble [0 × 3]>
-##  8 <split [24817/2757]> Fold08 <tibble [3 × 4]> <tibble [0 × 3]>
-##  9 <split [24817/2757]> Fold09 <tibble [3 × 4]> <tibble [0 × 3]>
-## 10 <split [24817/2757]> Fold10 <tibble [3 × 4]> <tibble [0 × 3]>
+## # 5-fold cross-validation 
+## # A tibble: 5 × 4
+##   splits               id    .metrics         .notes          
+##   <list>               <chr> <list>           <list>          
+## 1 <split [22059/5515]> Fold1 <tibble [3 × 4]> <tibble [0 × 3]>
+## 2 <split [22059/5515]> Fold2 <tibble [3 × 4]> <tibble [0 × 3]>
+## 3 <split [22059/5515]> Fold3 <tibble [3 × 4]> <tibble [0 × 3]>
+## 4 <split [22059/5515]> Fold4 <tibble [3 × 4]> <tibble [0 × 3]>
+## 5 <split [22060/5514]> Fold5 <tibble [3 × 4]> <tibble [0 × 3]>
 ```
 
 ``` r
@@ -846,11 +765,11 @@ collect_metrics(diabetes_fit_kfold)
 
 ```
 ## # A tibble: 3 × 6
-##   .metric     .estimator   mean     n  std_err .config             
-##   <chr>       <chr>       <dbl> <int>    <dbl> <chr>               
-## 1 accuracy    binary     0.905     10 0.00218  Preprocessor1_Model1
-## 2 brier_class binary     0.0797    10 0.000993 Preprocessor1_Model1
-## 3 roc_auc     binary     0.778     10 0.00676  Preprocessor1_Model1
+##   .metric     .estimator   mean     n std_err .config             
+##   <chr>       <chr>       <dbl> <int>   <dbl> <chr>               
+## 1 accuracy    binary     0.904      5 0.00291 Preprocessor1_Model1
+## 2 brier_class binary     0.0797     5 0.00141 Preprocessor1_Model1
+## 3 roc_auc     binary     0.778      5 0.00456 Preprocessor1_Model1
 ```
 
 ``` r
@@ -875,7 +794,7 @@ Depending on the ML model there are different hyperparameters we might want to t
 * Lasso regression: the coefficients of some less contributive variables are forced to be exactly zero. Only the most significant variables are kept in the final model.
 * Elastic net regression: the combination of ridge and lasso regression. It shrinks some coefficients toward zero (like ridge regression) and set some coefficients to exactly zero (like lasso regression)
 
-Here we are going to use the same setup as before with our up-sampled and 10 fold cross validation approach and add in the hyperparameter testing. We will go from using the `gml` engine in R to the `glmnet` package for estimates. From the package description
+Here we are going to use the same setup as before with our up-sampled and 10 fold cross validation approach and add in the hyperparameter testing. We will go from using the `glm` engine in R to the `glmnet` package for estimates. From the package description
 
 > Extremely efficient procedures for fitting the entire lasso or elastic-net regularization path for linear regression, logistic and multinomial regression models, Poisson regression, Cox model, multiple-response Gaussian, and the grouped multinomial regression; see [https://doi.org/10.18637/jss.v033.i01](https://doi.org/10.18637/jss.v033.i01) and [https://doi.org/10.18637/jss.v039.i05](https://doi.org/10.18637/jss.v039.i05). 
 
@@ -891,25 +810,27 @@ logistic_m_mixture <- logistic_reg(
 diabetes_wflow_oversamp_tune <- workflow() %>% 
           add_model(logistic_m_mixture) %>% 
           add_recipe(diabetes_rec_oversamp) %>% 
-          tune_grid(resamples = folds) 
+          tune_grid(resamples = folds,
+                    control = control_grid(save_pred = TRUE, 
+                                            verbose = FALSE)) ## Edit for running live
 
 collect_metrics(diabetes_wflow_oversamp_tune) 
 ```
 
 ```
 ## # A tibble: 30 × 8
-##          penalty mixture .metric     .estimator   mean     n  std_err .config   
-##            <dbl>   <dbl> <chr>       <chr>       <dbl> <int>    <dbl> <chr>     
-##  1 0.00000000670   0.132 accuracy    binary     0.905     10 0.00217  Preproces…
-##  2 0.00000000670   0.132 brier_class binary     0.0796    10 0.000987 Preproces…
-##  3 0.00000000670   0.132 roc_auc     binary     0.778     10 0.00672  Preproces…
-##  4 0.245           0.176 accuracy    binary     0.945     10 0.00192  Preproces…
-##  5 0.245           0.176 brier_class binary     0.0771    10 0.000855 Preproces…
-##  6 0.245           0.176 roc_auc     binary     0.771     10 0.00650  Preproces…
-##  7 0.00000934      0.330 accuracy    binary     0.906     10 0.00213  Preproces…
-##  8 0.00000934      0.330 brier_class binary     0.0795    10 0.000987 Preproces…
-##  9 0.00000934      0.330 roc_auc     binary     0.778     10 0.00667  Preproces…
-## 10 0.00219         0.344 accuracy    binary     0.908     10 0.00221  Preproces…
+##     penalty mixture .metric     .estimator   mean     n  std_err .config        
+##       <dbl>   <dbl> <chr>       <chr>       <dbl> <int>    <dbl> <chr>          
+##  1 1.00e- 7   0.140 accuracy    binary     0.905      5 0.00287  Preprocessor1_…
+##  2 1.00e- 7   0.140 brier_class binary     0.0796     5 0.00143  Preprocessor1_…
+##  3 1.00e- 7   0.140 roc_auc     binary     0.778      5 0.00454  Preprocessor1_…
+##  4 2.42e-10   0.202 accuracy    binary     0.905      5 0.00287  Preprocessor1_…
+##  5 2.42e-10   0.202 brier_class binary     0.0796     5 0.00143  Preprocessor1_…
+##  6 2.42e-10   0.202 roc_auc     binary     0.778      5 0.00454  Preprocessor1_…
+##  7 6.44e- 1   0.311 accuracy    binary     0.945      5 0.00174  Preprocessor1_…
+##  8 6.44e- 1   0.311 brier_class binary     0.0829     5 0.000935 Preprocessor1_…
+##  9 6.44e- 1   0.311 roc_auc     binary     0.5        5 0        Preprocessor1_…
+## 10 5.58e- 9   0.396 accuracy    binary     0.905      5 0.00276  Preprocessor1_…
 ## # ℹ 20 more rows
 ```
 
@@ -919,38 +840,98 @@ show_best(diabetes_wflow_oversamp_tune, metric='accuracy', n=5)  # only show the
 
 ```
 ## # A tibble: 5 × 8
-##     penalty mixture .metric  .estimator  mean     n std_err .config             
-##       <dbl>   <dbl> <chr>    <chr>      <dbl> <int>   <dbl> <chr>               
-## 1 0.245       0.176 accuracy binary     0.945    10 0.00192 Preprocessor1_Model…
-## 2 0.0646      0.816 accuracy binary     0.945    10 0.00185 Preprocessor1_Model…
-## 3 0.00219     0.344 accuracy binary     0.908    10 0.00221 Preprocessor1_Model…
-## 4 0.000262    0.529 accuracy binary     0.906    10 0.00211 Preprocessor1_Model…
-## 5 0.0000121   0.932 accuracy binary     0.906    10 0.00211 Preprocessor1_Model…
+##       penalty mixture .metric  .estimator  mean     n std_err .config           
+##         <dbl>   <dbl> <chr>    <chr>      <dbl> <int>   <dbl> <chr>             
+## 1 0.644         0.311 accuracy binary     0.945     5 0.00174 Preprocessor1_Mod…
+## 2 0.0705        0.847 accuracy binary     0.945     5 0.00174 Preprocessor1_Mod…
+## 3 0.00910       0.795 accuracy binary     0.917     5 0.00263 Preprocessor1_Mod…
+## 4 0.000000100   0.140 accuracy binary     0.905     5 0.00287 Preprocessor1_Mod…
+## 5 0.000165      0.582 accuracy binary     0.905     5 0.00284 Preprocessor1_Mod…
 ```
 
 ``` r
 autoplot(diabetes_wflow_oversamp_tune) 
 ```
 
-![](logistic_regression_ml_files/figure-html/unnamed-chunk-23-1.png)<!-- -->
+![](logistic_regression_ml_files/figure-html/unnamed-chunk-25-1.png)<!-- -->
 
 Here we can see that based on tuning the model accuracy ranges from 0.904 to 0.945. That's a 4% improvement! I have seen hyperparameter tuning improve models by more than 10% so this is a reasonable improvement. We also get the specific values for the penalty and mixutre that we can run in a final model. Here we also get two different tuning specifications with the same accuracy. So we might have to make a decision about which one is more appropriate depending on our data.  
 
 ### 3.5. Transforming features (variables)
 
+In machine learning these is a lot of emphasis placed on data pre-processing. Here we are going to talk about two approaches that you are probably familiar with but not in the machine learning context. Normalization/Standardization and creating one-hot encoding/dummy variables. 
+
+#### Normalization/Standardization
+
+Common practice in ML is normalize/standardize/z-score all of the continuous variables in a model. This creates variables with a mean of 0 and a standard deviation of 1. Doing this makes the specific coefficients of the association between the feature and outcome less interpretable BUT it helps a lot with model convergence and speed. Having continuous variables on lots of different scales can quickly create problems with model convergence. 
+
+#### One-hot encoding/dummy variables
+
+One-hot encoding or dummy variable coding converts all categorical variables into 0/1 versions of those variables rather than having them as factors with a dataframe. This encoding creates dummy variables from all categorical predictors. This again, speeds up computation time and can help with interpretation. It's not 100% necessary to do this, but you will see that it is common practice and often it's important just to know the words.
+
+We can easily rerun our best model with normalized continuous predictors using the `step_normalize` function and the `step_dummy` 
 
 
-## 4. Machine Learning - Random Forest
+``` r
+diabetes_rec_oversamp_norm <- 
+  recipe(diabetes_t2 ~ ., data = train_data) %>%
+  step_upsample(diabetes_t2, over_ratio = 0.3) %>%
+  step_unknown() %>%
+  step_normalize(all_numeric_predictors()) %>%
+  step_dummy(all_nominal_predictors())
+
+diabetes_wflow_oversamp_tune_norm <- 
+  workflow() %>% 
+  add_model(logistic_m_mixture) %>% 
+  add_recipe(diabetes_rec_oversamp_norm) %>% 
+  tune_grid(resamples = folds,
+                    control = control_grid(save_pred = TRUE, 
+                                             verbose = FALSE)) ## Edit for running live
+
+show_best(diabetes_wflow_oversamp_tune_norm, metric='accuracy', n=5)  # only show the results for the best 5 models
+```
+
+```
+## # A tibble: 5 × 8
+##    penalty mixture .metric  .estimator  mean     n std_err .config              
+##      <dbl>   <dbl> <chr>    <chr>      <dbl> <int>   <dbl> <chr>                
+## 1 9.72e- 1  0.0625 accuracy binary     0.945     5 0.00174 Preprocessor1_Model01
+## 2 2.81e- 2  0.164  accuracy binary     0.921     5 0.00230 Preprocessor1_Model02
+## 3 2.04e- 3  0.567  accuracy binary     0.907     5 0.00252 Preprocessor1_Model06
+## 4 5.21e- 9  0.475  accuracy binary     0.905     5 0.00223 Preprocessor1_Model05
+## 5 1.01e-10  0.969  accuracy binary     0.905     5 0.00213 Preprocessor1_Model10
+```
+
+### Benchmarks 
+
+We can check how long each model took to run using the `microbenchmark` package. These are nanoseconds, so there is no real difference here but this is a simple model with small data. 
 
 
+``` r
+microbenchmark(logistic_model, diabetes_wflow_oversamp, diabetes_wflow_oversamp_tune, diabetes_wflow_oversamp_tune_norm)
+```
+
+```
+## Unit: nanoseconds
+##                               expr min lq mean median uq max neval cld
+##                     logistic_model   0  0 3.28      0  0 328   100   a
+##            diabetes_wflow_oversamp   0  0 0.82      0  0  82   100   a
+##       diabetes_wflow_oversamp_tune   0  0 4.51      0  0 451   100   a
+##  diabetes_wflow_oversamp_tune_norm   0  0 4.51      0  0 410   100   a
+```
 
 # References
 
-https://themis.tidymodels.org/reference/step_upsample.html
+1. Modelling Binary Logistic Regression using Tidymodels Library in R (Part-1). [https://medium.com/the-researchers-guide/modelling-binary-logistic-regression-using-tidymodels-library-in-r-part-1-c1bdce0ac055](https://medium.com/the-researchers-guide/modelling-binary-logistic-regression-using-tidymodels-library-in-r-part-1-c1bdce0ac055)
+2. STAT 253: Statistical Machine Learning. [https://bcheggeseth.github.io/253_spring_2024/tidymodels-cheatsheet.html#logistic-regression](https://bcheggeseth.github.io/253_spring_2024/tidymodels-cheatsheet.html#logistic-regression)
+3. Tidymodels. [https://www.tidymodels.org/start/](https://www.tidymodels.org/start/)
+4. Fitting Models with parsnip. [https://www.tmwr.org/models](https://www.tmwr.org/models)
+5. Up-Sample a Data Set Based on a Factor Variable. [https://themis.tidymodels.org/reference/step_upsample.html](https://themis.tidymodels.org/reference/step_upsample.html)
+6. Logistic regression. [https://parsnip.tidymodels.org/reference/logistic_reg.html](https://parsnip.tidymodels.org/reference/logistic_reg.html)
+7. Hyperparameter tuning and model stacking using tidymodels in R. [https://www.stepbystepdatascience.com/tuning-hyperparameters-tidymodels](https://www.stepbystepdatascience.com/tuning-hyperparameters-tidymodels)
+8. Machine learning in R with tidymodels. [https://www.stepbystepdatascience.com/ml-with-tidymodels](https://www.stepbystepdatascience.com/ml-with-tidymodels)
+9.  Penalized Logistic Regression Essentials in R: Ridge, Lasso and Elastic Net . [http://sthda.com/english/articles/36-classification-methods-essentials/149-penalized-logistic-regression-essentials-in-r-ridge-lasso-and-elastic-net/](http://sthda.com/english/articles/36-classification-methods-essentials/149-penalized-logistic-regression-essentials-in-r-ridge-lasso-and-elastic-net/)
+10. A Guide to Logistic Regression in SAS. [https://communities.sas.com/t5/SAS-Communities-Library/A-Guide-to-Logistic-Regression-in-SAS/ta-p/564323](https://communities.sas.com/t5/SAS-Communities-Library/A-Guide-to-Logistic-Regression-in-SAS/ta-p/564323)
+11. Data-Driven Analytics in SAS Viya – Logistic Regression Model Results Interpretation. [https://communities.sas.com/t5/SAS-Communities-Library/Data-Driven-Analytics-in-SAS-Viya-Logistic-Regression-Model/ta-p/944645](https://communities.sas.com/t5/SAS-Communities-Library/Data-Driven-Analytics-in-SAS-Viya-Logistic-Regression-Model/ta-p/944645)
 
-https://parsnip.tidymodels.org/reference/logistic_reg.html
-
-https://www.stepbystepdatascience.com/tuning-hyperparameters-tidymodels 
-
-https://www.stepbystepdatascience.com/ml-with-tidymodels
 
