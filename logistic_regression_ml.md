@@ -587,16 +587,16 @@ ggplot(train_data) +
 ![](logistic_regression_ml_files/figure-html/unnamed-chunk-18-1.png)<!-- -->
 
 ``` r
-### Creating a recipe were we upsample the diabetes yes category to be 30% of the diabetes no category. This is an arbitrary number and you will need to play with this.
+### Creating a recipe were we upsample the diabetes yes category to be 50% of the diabetes no category. This is an arbitrary number and you will need to play with this.
 diabetes_rec_oversamp <- 
   recipe(diabetes_t2 ~ ., data = train_data) %>%
-  step_upsample(diabetes_t2, over_ratio = 0.3) %>%
+  step_upsample(diabetes_t2, over_ratio = 0.5) %>%
   step_unknown() %>%
   step_dummy(all_nominal_predictors()) 
 
 ### Visualization of the 30% ratio
 recipe(~., train_data) %>%
-  step_upsample(diabetes_t2, over_ratio = 0.3) %>%
+  step_upsample(diabetes_t2, over_ratio = 0.5) %>%
   prep() %>%
   bake(new_data = NULL) %>%
   ggplot(aes(diabetes_t2)) +
@@ -605,7 +605,7 @@ recipe(~., train_data) %>%
 
 ![](logistic_regression_ml_files/figure-html/unnamed-chunk-18-2.png)<!-- -->
 
-Here we upscale the `diabetes-Yes` category to 30% of the of the `diabetes-No` category. The figures show the differences but we go from 1514 cases of diabetes in the training set to over 7000 cases of diabetes. 
+Here we upscale the `diabetes-Yes` category to 50% of the of the `diabetes-No` category. The figures show the differences but we go from 1514 cases of diabetes in the training set to over ~12000 cases of diabetes. 
 
 **Up-scaling regression**
 
@@ -672,18 +672,18 @@ diabetes_fit_oversamp %>%
 
 ```
 ## # A tibble: 72 × 5
-##    term                          estimate  std.error statistic   p.value
-##    <chr>                            <dbl>      <dbl>     <dbl>     <dbl>
-##  1 (Intercept)                 -4.04      0.338        -12.0   5.68e- 33
-##  2 PM_BMI_SR                    0.0000610 0.00000900     6.77  1.27e- 11
-##  3 SDC_AGE_CALC                 0.0591    0.00174       34.1   3.93e-254
-##  4 NUT_VEG_QTY                 -0.00464   0.00931       -0.499 6.18e-  1
-##  5 NUT_FRUITS_QTY               0.0631    0.0116         5.43  5.74e-  8
-##  6 ALC_CUR_FREQ                -0.0784    0.00680      -11.5   9.57e- 31
-##  7 PA_SIT_AVG_TIME_DAY          0.0000143 0.0000336      0.426 6.70e-  1
-##  8 SLE_TIME                     0.000793  0.000181       4.38  1.21e-  5
-##  9 PM_WEIGHT_SR_AVG             0.000339  0.0000355      9.55  1.36e- 21
-## 10 pa_cat_X2_Moderate.Activity -0.0319    0.0368        -0.867 3.86e-  1
+##    term                           estimate  std.error statistic  p.value
+##    <chr>                             <dbl>      <dbl>     <dbl>    <dbl>
+##  1 (Intercept)                 -3.36       0.281        -12.0   5.67e-33
+##  2 PM_BMI_SR                    0.0000632  0.00000765     8.26  1.40e-16
+##  3 SDC_AGE_CALC                 0.0605     0.00147       41.2   0       
+##  4 NUT_VEG_QTY                 -0.00747    0.00788       -0.949 3.43e- 1
+##  5 NUT_FRUITS_QTY               0.0632     0.00993        6.36  2.05e-10
+##  6 ALC_CUR_FREQ                -0.0809     0.00578      -14.0   1.67e-44
+##  7 PA_SIT_AVG_TIME_DAY         -0.00000719 0.0000293     -0.245 8.06e- 1
+##  8 SLE_TIME                     0.000842   0.000154       5.45  4.90e- 8
+##  9 PM_WEIGHT_SR_AVG             0.000334   0.0000303     11.0   2.87e-28
+## 10 pa_cat_X2_Moderate.Activity -0.00542    0.0314        -0.173 8.63e- 1
 ## # ℹ 62 more rows
 ```
 
@@ -702,12 +702,12 @@ kable(diabetes_fit_oversamp_all_metrics)
 
 |.metric   |.estimator | .estimate|
 |:---------|:----------|---------:|
-|accuracy  |binary     | 0.9053985|
-|sens      |binary     | 0.9431390|
-|spec      |binary     | 0.2754491|
-|precision |binary     | 0.9560000|
-|recall    |binary     | 0.9431390|
-|f_meas    |binary     | 0.9495260|
+|accuracy  |binary     | 0.8546285|
+|sens      |binary     | 0.8797309|
+|spec      |binary     | 0.4356287|
+|precision |binary     | 0.9629884|
+|recall    |binary     | 0.8797309|
+|f_meas    |binary     | 0.9194788|
 
 Here we have dramatically improved our specificity from 0.004 to 0.28. Overall, our accuracy and other metrics have gone down... which is good. This model is much better and less suspect than our previous model. Our up-sampling has done well here. We could test more up-sampling but you get the idea here. 
 
@@ -765,11 +765,11 @@ collect_metrics(diabetes_fit_kfold)
 
 ```
 ## # A tibble: 3 × 6
-##   .metric     .estimator   mean     n std_err .config             
-##   <chr>       <chr>       <dbl> <int>   <dbl> <chr>               
-## 1 accuracy    binary     0.904      5 0.00291 Preprocessor1_Model1
-## 2 brier_class binary     0.0797     5 0.00141 Preprocessor1_Model1
-## 3 roc_auc     binary     0.778      5 0.00456 Preprocessor1_Model1
+##   .metric     .estimator  mean     n std_err .config             
+##   <chr>       <chr>      <dbl> <int>   <dbl> <chr>               
+## 1 accuracy    binary     0.850     5 0.00250 Preprocessor1_Model1
+## 2 brier_class binary     0.114     5 0.00137 Preprocessor1_Model1
+## 3 roc_auc     binary     0.778     5 0.00435 Preprocessor1_Model1
 ```
 
 ``` r
@@ -781,7 +781,7 @@ accuracy(diabetes_aug_oversamp, truth = diabetes_t2,
 ## # A tibble: 1 × 3
 ##   .metric  .estimator .estimate
 ##   <chr>    <chr>          <dbl>
-## 1 accuracy binary         0.905
+## 1 accuracy binary         0.855
 ```
 
 Note that our accuracy and other metrics did not change. BUT now because we did a cross-validation, meaning we replicated the analysis many times on sub-sets of the data, we can estimate a standard error for our metrics. This is another big advantage of using bootstraps or cross-validation approaches. We get some idea of potential error in our metrics. 
@@ -819,18 +819,18 @@ collect_metrics(diabetes_wflow_oversamp_tune)
 
 ```
 ## # A tibble: 30 × 8
-##     penalty mixture .metric     .estimator   mean     n  std_err .config        
-##       <dbl>   <dbl> <chr>       <chr>       <dbl> <int>    <dbl> <chr>          
-##  1 1.00e- 7   0.140 accuracy    binary     0.905      5 0.00287  Preprocessor1_…
-##  2 1.00e- 7   0.140 brier_class binary     0.0796     5 0.00143  Preprocessor1_…
-##  3 1.00e- 7   0.140 roc_auc     binary     0.778      5 0.00454  Preprocessor1_…
-##  4 2.42e-10   0.202 accuracy    binary     0.905      5 0.00287  Preprocessor1_…
-##  5 2.42e-10   0.202 brier_class binary     0.0796     5 0.00143  Preprocessor1_…
-##  6 2.42e-10   0.202 roc_auc     binary     0.778      5 0.00454  Preprocessor1_…
-##  7 6.44e- 1   0.311 accuracy    binary     0.945      5 0.00174  Preprocessor1_…
-##  8 6.44e- 1   0.311 brier_class binary     0.0829     5 0.000935 Preprocessor1_…
-##  9 6.44e- 1   0.311 roc_auc     binary     0.5        5 0        Preprocessor1_…
-## 10 5.58e- 9   0.396 accuracy    binary     0.905      5 0.00276  Preprocessor1_…
+##     penalty mixture .metric     .estimator  mean     n  std_err .config         
+##       <dbl>   <dbl> <chr>       <chr>      <dbl> <int>    <dbl> <chr>           
+##  1 1.00e- 7   0.140 accuracy    binary     0.851     5 0.00242  Preprocessor1_M…
+##  2 1.00e- 7   0.140 brier_class binary     0.113     5 0.00138  Preprocessor1_M…
+##  3 1.00e- 7   0.140 roc_auc     binary     0.779     5 0.00435  Preprocessor1_M…
+##  4 2.42e-10   0.202 accuracy    binary     0.851     5 0.00255  Preprocessor1_M…
+##  5 2.42e-10   0.202 brier_class binary     0.113     5 0.00139  Preprocessor1_M…
+##  6 2.42e-10   0.202 roc_auc     binary     0.779     5 0.00435  Preprocessor1_M…
+##  7 6.44e- 1   0.311 accuracy    binary     0.945     5 0.00174  Preprocessor1_M…
+##  8 6.44e- 1   0.311 brier_class binary     0.129     5 0.000579 Preprocessor1_M…
+##  9 6.44e- 1   0.311 roc_auc     binary     0.5       5 0        Preprocessor1_M…
+## 10 5.58e- 9   0.396 accuracy    binary     0.851     5 0.00250  Preprocessor1_M…
 ## # ℹ 20 more rows
 ```
 
@@ -840,13 +840,13 @@ show_best(diabetes_wflow_oversamp_tune, metric='accuracy', n=5)  # only show the
 
 ```
 ## # A tibble: 5 × 8
-##       penalty mixture .metric  .estimator  mean     n std_err .config           
-##         <dbl>   <dbl> <chr>    <chr>      <dbl> <int>   <dbl> <chr>             
-## 1 0.644         0.311 accuracy binary     0.945     5 0.00174 Preprocessor1_Mod…
-## 2 0.0705        0.847 accuracy binary     0.945     5 0.00174 Preprocessor1_Mod…
-## 3 0.00910       0.795 accuracy binary     0.917     5 0.00263 Preprocessor1_Mod…
-## 4 0.000000100   0.140 accuracy binary     0.905     5 0.00287 Preprocessor1_Mod…
-## 5 0.000165      0.582 accuracy binary     0.905     5 0.00284 Preprocessor1_Mod…
+##         penalty mixture .metric  .estimator  mean     n std_err .config         
+##           <dbl>   <dbl> <chr>    <chr>      <dbl> <int>   <dbl> <chr>           
+## 1 0.644           0.311 accuracy binary     0.945     5 0.00174 Preprocessor1_M…
+## 2 0.0705          0.847 accuracy binary     0.935     5 0.00213 Preprocessor1_M…
+## 3 0.00910         0.795 accuracy binary     0.860     5 0.00249 Preprocessor1_M…
+## 4 0.0000000964    0.521 accuracy binary     0.851     5 0.00241 Preprocessor1_M…
+## 5 0.00000000558   0.396 accuracy binary     0.851     5 0.00250 Preprocessor1_M…
 ```
 
 ``` r
@@ -915,9 +915,9 @@ microbenchmark(logistic_model, diabetes_wflow_oversamp, diabetes_wflow_oversamp_
 ## Unit: nanoseconds
 ##                               expr min lq mean median uq max neval cld
 ##                     logistic_model   0  0 3.28      0  0 328   100   a
-##            diabetes_wflow_oversamp   0  0 0.82      0  0  82   100   a
-##       diabetes_wflow_oversamp_tune   0  0 4.51      0  0 451   100   a
-##  diabetes_wflow_oversamp_tune_norm   0  0 4.51      0  0 410   100   a
+##            diabetes_wflow_oversamp   0  0 4.10      0  0 410   100   a
+##       diabetes_wflow_oversamp_tune   0  0 6.15      0  0 615   100   a
+##  diabetes_wflow_oversamp_tune_norm   0  0 4.51      0  0 369   100   a
 ```
 
 # References

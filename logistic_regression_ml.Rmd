@@ -311,23 +311,23 @@ table(train_data$diabetes_t2)
 ggplot(train_data) + 
     geom_bar(aes(diabetes_t2))
 
-### Creating a recipe were we upsample the diabetes yes category to be 30% of the diabetes no category. This is an arbitrary number and you will need to play with this.
+### Creating a recipe were we upsample the diabetes yes category to be 50% of the diabetes no category. This is an arbitrary number and you will need to play with this.
 diabetes_rec_oversamp <- 
   recipe(diabetes_t2 ~ ., data = train_data) %>%
-  step_upsample(diabetes_t2, over_ratio = 0.3) %>%
+  step_upsample(diabetes_t2, over_ratio = 0.5) %>%
   step_unknown() %>%
   step_dummy(all_nominal_predictors()) 
 
 ### Visualization of the 30% ratio
 recipe(~., train_data) %>%
-  step_upsample(diabetes_t2, over_ratio = 0.3) %>%
+  step_upsample(diabetes_t2, over_ratio = 0.5) %>%
   prep() %>%
   bake(new_data = NULL) %>%
   ggplot(aes(diabetes_t2)) +
   geom_bar()
 ```
 
-Here we upscale the `diabetes-Yes` category to 30% of the of the `diabetes-No` category. The figures show the differences but we go from 1514 cases of diabetes in the training set to over 7000 cases of diabetes. 
+Here we upscale the `diabetes-Yes` category to 50% of the of the `diabetes-No` category. The figures show the differences but we go from 1514 cases of diabetes in the training set to over ~12000 cases of diabetes. 
 
 **Up-scaling regression**
 

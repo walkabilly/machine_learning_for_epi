@@ -7,7 +7,8 @@ output:
         keep_md: true
 ---
 
-```{r setup, message = FALSE, warning = FALSE}
+
+``` r
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(tidymodels)
@@ -62,9 +63,23 @@ We have identified that the following factors are associated with type 2 diabete
 
 Here are reading in data and getting organized to run our models. 
 
-```{r}
-data <- read_csv("data_imputed.csv")
 
+``` r
+data <- read_csv("data_imputed.csv")
+```
+
+```
+## Rows: 39392 Columns: 29
+## ── Column specification ────────────────────────────────────────────────────────
+## Delimiter: ","
+## chr  (6): diabetes, pa_cat, latinx, indigenous, eb_black, fatty_liver
+## dbl (23): diabetes_t2, PM_BMI_SR, SDC_AGE_CALC, SDC_MARITAL_STATUS, SDC_EDU_...
+## 
+## ℹ Use `spec()` to retrieve the full column specification for this data.
+## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+```
+
+``` r
 data$diabetes <- NULL
 
 cols <- c("pa_cat", "latinx", "indigenous", "eb_black", "fatty_liver", "SDC_MARITAL_STATUS", "SDC_EDU_LEVEL", "SDC_INCOME", "HS_GEN_HEALTH",  "SDC_BIRTH_COUNTRY", "SMK_CIG_STATUS", "DIS_DIAB_FAM_EVER", "DIS_DIAB_FAM_EVER", "HS_ROUTINE_VISIT_EVER", "DIS_STROKE_EVER", "DIS_COPD_EVER", "DIS_LC_EVER", "DIS_IBS_EVER", "DIS_DIAB_FAM_EVER", "WRK_FULL_TIME", "WRK_STUDENT", "PM_BMI_SR", "PM_WEIGHT_SR_AVG")
@@ -75,7 +90,8 @@ data$PM_BMI_SR <- as.numeric(data$PM_BMI_SR)
 data$PM_WEIGHT_SR_AVG <- as.numeric(data$PM_WEIGHT_SR_AVG)
 ```
 
-```{r}
+
+``` r
 # Fix the random numbers by setting the seed 
 # This enables the analysis to be reproducible when random numbers are used 
 set.seed(10)
@@ -85,9 +101,23 @@ data_split <- initial_split(data, prop = 0.70, strata = diabetes_t2)
 # Create data frames for the two sets:
 train_data <- training(data_split)
 table(train_data$diabetes_t2)
+```
 
+```
+## 
+##     0     1 
+## 26057  1517
+```
+
+``` r
 test_data  <- testing(data_split)
 table(test_data$diabetes_t2)
+```
+
+```
+## 
+##     0     1 
+## 11150   668
 ```
 
 ## 3. Random Forest
@@ -104,10 +134,17 @@ Here we are using the engine `ranger` and with the mode is classification becaus
 
 #### Model
 
-```{r}
+
+``` r
 cores <- parallel::detectCores()  ## Here we will need to setup cores to make this run more efficiently. My laptop has 8 cores.
 cores
+```
 
+```
+## [1] 8
+```
+
+``` r
 rf_model <- rand_forest(mtry = tune(), 
                         min_n = tune(), 
                         trees = 100) %>% 
@@ -117,11 +154,26 @@ rf_model <- rand_forest(mtry = tune(),
 rf_model
 ```
 
+```
+## Random Forest Model Specification (classification)
+## 
+## Main Arguments:
+##   mtry = tune()
+##   trees = 100
+##   min_n = tune()
+## 
+## Engine-Specific Arguments:
+##   num.threads = cores
+## 
+## Computational engine: ranger
+```
+
 #### Recipe 
 
 The code below is the recipe for the oversample data that we already ran previously in the logistic regression part. 
 
-```{r}
+
+``` r
 diabetes_rec_oversamp_rf <- recipe(diabetes_t2 ~ ., data = train_data) %>%
   step_upsample(diabetes_t2, over_ratio = 0.5) %>%
   step_normalize(all_numeric_predictors()) %>%
@@ -135,9 +187,12 @@ recipe(~., train_data) %>%
   geom_bar()
 ```
 
+![](random_forest_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
+
 #### Workflow 
 
-```{r}
+
+``` r
 diabetes_wflow_oversamp_rf <- workflow() %>% 
   add_model(rf_model) %>% 
   add_recipe(diabetes_rec_oversamp_rf) 
@@ -147,8 +202,22 @@ diabetes_wflow_oversamp_rf <- workflow() %>%
 
 Here were are setup which parts of the model that we are tuning. 
 
-```{r}
+
+``` r
 extract_parameter_set_dials(rf_model)
+```
+
+```
+## Collection of 2 parameters for tuning
+## 
+##  identifier  type    object
+##        mtry  mtry nparam[?]
+##       min_n min_n nparam[+]
+## 
+## Model parameters needing finalization:
+##    # Randomly Selected Predictors ('mtry')
+## 
+## See `?dials::finalize` or `?dials::update.parameters` for more information.
 ```
 
 Here the output tells use that we are tuning the `mtry` and the `min_n` parameters for the model. 
@@ -157,7 +226,8 @@ Here the output tells use that we are tuning the `mtry` and the `min_n` paramete
 
 Setup the number of folds and the tuning for the 
 
-```{r}
+
+``` r
 diabetes_folds <- vfold_cv(train_data, v = 5)
 
 rf_result <- 
@@ -168,13 +238,42 @@ rf_result <-
                                    verbose = FALSE),  # Edit this for running live
             metrics = metric_set(roc_auc, accuracy, spec)
             )
+```
 
+```
+## i Creating pre-processing data to finalize unknown parameter: mtry
+```
+
+``` r
 autoplot(rf_result) 
+```
 
+![](random_forest_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+
+``` r
 predictions <- rf_result %>% 
                   collect_predictions()
 predictions
+```
 
+```
+## # A tibble: 551,480 × 9
+##    .pred_class .pred_0 .pred_1 id     .row  mtry min_n diabetes_t2 .config      
+##    <fct>         <dbl>   <dbl> <chr> <int> <int> <int> <fct>       <chr>        
+##  1 0             0.666   0.334 Fold1     1     1    25 0           Preprocessor…
+##  2 0             0.704   0.296 Fold1     3     1    25 0           Preprocessor…
+##  3 0             0.662   0.338 Fold1     6     1    25 0           Preprocessor…
+##  4 0             0.704   0.296 Fold1     9     1    25 0           Preprocessor…
+##  5 0             0.712   0.288 Fold1    11     1    25 0           Preprocessor…
+##  6 0             0.750   0.250 Fold1    15     1    25 0           Preprocessor…
+##  7 0             0.645   0.355 Fold1    26     1    25 0           Preprocessor…
+##  8 0             0.695   0.305 Fold1    28     1    25 0           Preprocessor…
+##  9 0             0.700   0.300 Fold1    31     1    25 0           Preprocessor…
+## 10 0             0.683   0.317 Fold1    32     1    25 0           Preprocessor…
+## # ℹ 551,470 more rows
+```
+
+``` r
 rf_best <- 
   rf_result %>% 
   select_best(metric = "accuracy")
@@ -182,9 +281,17 @@ rf_best <-
 rf_best
 ```
 
+```
+## # A tibble: 1 × 3
+##    mtry min_n .config              
+##   <int> <int> <chr>                
+## 1     1    25 Preprocessor1_Model01
+```
+
 #### Creating the ROC curve for the models 
 
-```{r}
+
+``` r
 roc_curve_rf <- predictions %>%
   roc_curve(truth = diabetes_t2, .pred_0) %>%
   autoplot()
@@ -192,11 +299,14 @@ roc_curve_rf <- predictions %>%
 plot(roc_curve_rf)
 ```
 
+![](random_forest_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+
 ### Final model
 
 We’ll start by building our parsnip model object again from scratch. We take our best hyperparameter values from our random forest model. When we set the engine, we add a new argument: `importance = "impurity"`. This will provide variable importance scores for this last model, which gives some insight into which predictors drive model performance.
 
-```{r}
+
+``` r
 # the last model
 last_rf_mod <- 
   rand_forest(mtry = 1, 
@@ -219,27 +329,52 @@ last_rf_fit <-
 last_rf_fit
 ```
 
+```
+## # Resampling results
+## # Manual resampling 
+## # A tibble: 1 × 6
+##   splits                id             .metrics .notes   .predictions .workflow 
+##   <list>                <chr>          <list>   <list>   <list>       <list>    
+## 1 <split [27574/11818]> train/test sp… <tibble> <tibble> <tibble>     <workflow>
+```
+
 #### Show final model results
 
-```{r}
+
+``` r
 last_rf_fit %>% 
   collect_metrics()
 ```
 
+```
+## # A tibble: 3 × 4
+##   .metric     .estimator .estimate .config             
+##   <chr>       <chr>          <dbl> <chr>               
+## 1 accuracy    binary         0.943 Preprocessor1_Model1
+## 2 roc_auc     binary         0.754 Preprocessor1_Model1
+## 3 brier_class binary         0.117 Preprocessor1_Model1
+```
+
 #### Feature importance
 
-```{r}
+
+``` r
 last_rf_fit %>% 
   extract_fit_parsnip() %>% 
   vip(num_features = 20)
 ```
 
-```{r}
+![](random_forest_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
+
+
+``` r
 last_rf_fit %>% 
   collect_predictions() %>% 
   roc_curve(diabetes_t2, .pred_0) %>% 
   autoplot()
 ```
+
+![](random_forest_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
 
 # References
 
