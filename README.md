@@ -20,6 +20,12 @@ Code for the Random Forest portion of the course.
 * [Nice rendered Markdown](https://github.com/walkabilly/machine_learning_for_epi/blob/main/random_forest.md)
 * [Actual code](https://github.com/walkabilly/machine_learning_for_epi/blob/main/random_forest.Rmd)
 
+### Artificial Neural Net
+
+Code for NeuralNetwork 
+* [Nice rendered Markdown](https://github.com/walkabilly/machine_learning_for_epi/blob/main/artificial_neural_network.md)
+*[Actual code](https://github.com/walkabilly/machine_learning_for_epi/blob/main/artificial_neural_network.Rmd)
+
 ### Key Readings
 
 1. Bi Q, Goodman KE, Kaminsky J, Lessler J. What is Machine Learning? A Primer for the Epidemiologist. Am J Epidemiol. 2019 Dec 31;188(12):2222-2239. doi: [https://doi.org/10.1093/aje/kwz189](https://doi.org/10.1093/aje/kwz189). PMID: 31509183.
