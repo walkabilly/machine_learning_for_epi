@@ -27,7 +27,7 @@ library(glmnet)
 library(themis)
 library(microbenchmark)
 library(ranger)
-library(doParallel)
+library(parallel)
 library(party)
 library(partykit)
 library(rpart)
@@ -98,7 +98,7 @@ We are going to use Random Forest models here. We already know from the logistic
 2. `min_n` (the number of observations needed to keep splitting nodes)
 3. `tress` (number of trees in the model)
 
-Here we are setting up the recipe and the workflow for the model. Here we have some general information about the model. We setup with 1000 trees in the model, 27 independent variables. As we have previous discussed we will need to tune the model to get the best combination of predictors for each split (`mtry`) and the number of observations to split (`min_n`).
+Here we are setting up the recipe and the workflow for the model. Here we have some general information about the model. We setup with 100 trees in the model, 27 independent variables. As we have previous discussed we will need to tune the model to get the best combination of predictors for each split (`mtry`) and the number of observations to split (`min_n`).
 
 Here we are using the engine `ranger` and with the mode is classification because we are interested in a binary outcome. If this were a linear regression we set the mode to `regression`. 
 
@@ -165,7 +165,7 @@ rf_result <-
   tune_grid(diabetes_folds,
             grid = 20,
             control = control_grid(save_pred = TRUE, 
-                                   verbose = FALSE),  # Edit this for running live
+                                   verbose = TRUE),  # Edit this for running live
             metrics = metric_set(roc_auc, accuracy, spec)
             )
 
@@ -177,7 +177,7 @@ predictions
 
 rf_best <- 
   rf_result %>% 
-  select_best(metric = "accuracy")
+  select_best(metric = "spec")
 
 rf_best
 ```
@@ -199,8 +199,8 @@ We’ll start by building our parsnip model object again from scratch. We take o
 ```{r}
 # the last model
 last_rf_mod <- 
-  rand_forest(mtry = 1, 
-              min_n = 25, 
+  rand_forest(mtry = 3, 
+              min_n = 36, 
               trees = 100) %>% 
   set_engine("ranger", num.threads = cores, importance = "impurity") %>% 
   set_mode("classification")
