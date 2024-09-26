@@ -1,0 +1,112 @@
+---
+title: "Artificial Neural Network"
+date: "2024-09-23"
+output:
+      html_document:
+        keep_md: true
+---
+
+```{r}
+library(AppliedPredictiveModeling)
+library(brulee)
+library(tidymodels)
+library(torch)
+library(themis)
+library(tidyverse)
+library(sjPlot)
+library(finalfit)
+library(knitr)
+library(gtsummary)
+library(mlbench)
+```
+
+```{r}
+data <- read_csv("data_imputed.csv")
+
+data$diabetes <- NULL
+
+cols <- c("pa_cat", "latinx", "indigenous", "eb_black", "fatty_liver", "SDC_MARITAL_STATUS", "SDC_EDU_LEVEL", "SDC_INCOME", "HS_GEN_HEALTH",  "SDC_BIRTH_COUNTRY", "SMK_CIG_STATUS", "DIS_DIAB_FAM_EVER", "DIS_DIAB_FAM_EVER", "HS_ROUTINE_VISIT_EVER", "DIS_STROKE_EVER", "DIS_COPD_EVER", "DIS_LC_EVER", "DIS_IBS_EVER", "DIS_DIAB_FAM_EVER", "WRK_FULL_TIME", "WRK_STUDENT", "PM_BMI_SR", "PM_WEIGHT_SR_AVG")
+data %<>% mutate_at(cols, factor)
+
+data$diabetes_t2 <- as.factor(data$diabetes_t2)
+data$PM_BMI_SR <- as.numeric(data$PM_BMI_SR)
+data$PM_WEIGHT_SR_AVG <- as.numeric(data$PM_WEIGHT_SR_AVG)
+```
+
+
+```{r}
+# Fix the random numbers by setting the seed 
+# This enables the analysis to be reproducible when random numbers are used 
+set.seed(10)
+
+data_split <- initial_split(data, prop = 0.70, strata = diabetes_t2)
+
+# Create data frames for the two sets:
+train_data <- training(data_split)
+table(train_data$diabetes_t2)
+
+test_data  <- testing(data_split)
+table(test_data$diabetes_t2)
+```
+
+#### Recipe 
+
+The code below is the recipe for the oversample data that we already ran previously in the logistic regression part. 
+
+```{r}
+diabetes_rec_oversamp_rf <- recipe(diabetes_t2 ~ ., data = train_data) %>%
+  step_upsample(diabetes_t2, over_ratio = 0.5) %>%
+  step_normalize(all_numeric_predictors()) %>%
+  step_dummy(all_nominal_predictors())
+```
+
+### Model 
+
+```{r}
+nnet_spec <- 
+  mlp(epochs = 1000, hidden_units = 10, penalty = 0.01, learn_rate = 0.1) %>% 
+  set_engine("brulee", validation = 0) %>% 
+  set_mode("classification")
+
+nnet_wflow <- 
+  diabetes_rec_oversamp_rf %>% 
+  workflow(nnet_spec)
+```
+
+### Fitting the model
+```{r}
+set.seed(10)
+
+nnet_fit <- fit(nnet_wflow, train_data)
+
+nnet_fit %>% extract_fit_engine()
+```
+
+## Testing
+
+```{r}
+val_results <- 
+  test_data %>%
+  bind_cols(
+    predict(nnet_fit, new_data = test_data),
+    predict(nnet_fit, new_data = test_data, type = "prob")
+  )
+```
+ 
+#### Accuracy
+
+```{r}
+val_results %>% accuracy(truth = diabetes_t2, .pred_class)
+#val_results %>% spec(truth = diabetes_t2, .pred_class)
+```
+
+
+
+# References
+
+1. Classification models using a neural network [https://www.tidymodels.org/learn/models/parsnip-nnet/](https://www.tidymodels.org/learn/models/parsnip-nnet/)
+
+2. Single layer neural network. [https://parsnip.tidymodels.org/reference/mlp.html](https://parsnip.tidymodels.org/reference/mlp.html)
+
+3. Experimenting with machine learning in R with tidymodels and the Kaggle titanic dataset. [https://www.r-bloggers.com/2021/08/experimenting-with-machine-learning-in-r-with-tidymodels-and-the-kaggle-titanic-dataset/](https://www.r-bloggers.com/2021/08/experimenting-with-machine-learning-in-r-with-tidymodels-and-the-kaggle-titanic-dataset/)
+
